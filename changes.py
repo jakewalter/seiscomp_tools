@@ -30,6 +30,8 @@ while True:
             eventmag = event[0].preferred_magnitude().mag
 	    if eventmag > 4.0:
                 time.sleep(90)
+	    event = obspy.read_events('/home/sysop/output/'+eventid+'_update.xml')
+            eventmag = event[0].preferred_magnitude().mag
 	    try:
 	        with open(strtweet, 'r') as myfile:
 	    	    str1a = myfile.read()
