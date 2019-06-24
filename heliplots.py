@@ -22,7 +22,7 @@ outdir = '/home/analyst/www/eq/heliplot'
 #heli = os.path.join(outdir, day + '.pdf')
 
 
-usgs = Client("USGS")
+#usgs = Client("USGS")
 t2 = UTCDateTime.now()
 t1 = t2 - timedelta(days=2)
 
@@ -30,8 +30,9 @@ cat = Catalog()
 cat2 = Catalog()
 
 try:
+    usgs = Client("USGS")
     cat += usgs.get_events(starttime=t1, endtime=t2, latitude=LATITUDE,
-                           longitude=LONGITUDE, maxradius=2,minmagnitude=2)
+                           longitude=LONGITUDE, maxradius=2,minmagnitude=1.5)
 except:
     pass
 
@@ -54,9 +55,10 @@ fmaxbp = 20 # upper bandpass limit
 
 temp = (UTCDateTime(now)-86400)
 temp1 = UTCDateTime(now)
-
-os.system("scp keokuk-priv:~/scratch/temp.mseed ~/scratch/")
-st = read('~/scratch/temp.mseed')
+start0 = UTCDateTime(datetime(temp.year,temp.month,temp.day,temp.hour,0,0))
+os.system("scp keokuk-priv:~/scratch/temp.mseed /home/analyst/scratch/")
+st = read('/home/analyst/scratch/temp.mseed')
+st.merge()
 cat3 = cat
 for tr in st:
     net = str(tr.stats.network)
@@ -66,12 +68,17 @@ for tr in st:
     startt = str(tr.stats.starttime)
     sr = str(tr.stats.sampling_rate)
     heli = os.path.join(outdir, sta + '.pdf')
+    #tr.merge()
+    if isinstance(tr.data, np.ma.masked_array):
+        tr.data = tr.data.filled()
+    tr.trim(start0,tr.stats.endtime)
     sbp = tr.filter('bandpass', freqmin=fminbp, freqmax=fmaxbp, zerophase=True)
-
+    print(tr.stats.starttime)
     # make main and bandpass helicorders
     #st.plot(type='dayplot', title=net + '.' + sta + '.' + loc + '.' + ch + ' - ' + str(temp.year)+ '/'+str(temp.month)+ '/'+str(temp.day) + ' - rate: ' + sr + 'Hz - range: 0-25Hz', vertical_scaling_range=10e3, outfile=heli, color=['k'], time_offset=tz,size=(1000, 600))
     try:
-        sbp.plot(type='dayplot', title=net + '.' + sta + '.' + loc + '.' + ch + ' - ' + str(temp.year)+ '/'+str(temp.month)+ '/'+str(temp.day) + ' - rate: ' + sr + 'Hz - bandpass: 0.7-20Hz', vertical_scaling_range=None, outfile=heli, events=cat3, color=['k'],time_offset=tz,size=(1000, 800))
+        sbp.plot(type='dayplot', interval=60,title=net + '.' + sta + '.' + loc + '.' + ch + ' - ' + str(temp1.year)+ '/'+str(temp1.month)+ '/'+str(temp1.day) + ' ' + str(temp1.hour)+':'+str(temp1.minute)+' - Bandpass: 0.7-20Hz', vertical_scaling_range=None, outfile=heli, events=cat3, color=['k'],time_offset=tz,size=(1200, 800),number_of_ticks=7,one_tick_per_line=True)
+	#sbp.plot(type='dayplot', interval=60, title=net + '.' + sta + '.' + loc + '.' + ch + ' - ' + str(temp.year)+ '/'+str(temp.month)+ '/'+str(temp.day) + ' - Bandpass: 0.7-20Hz', vertical_scaling_range=None, outfile=heli, events=cat3, color=['k'],time_offset=tz,size=(1000, 800),number_of_ticks=7,one_tick_per_line=True)
     except:
         pass
     #del st
